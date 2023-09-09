@@ -7,20 +7,43 @@ import Comment from "./Components/comment";
 function App() {
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(false)
+  const [lastElement, setLastElement] = useState(null)
+  const [page, setPage] = useState(1)
 
   const fetchData = async () => {
     setLoading(true)
-    const response = await fetch('https://react-mini-projects-api.classbon.com/Comments/1')
+    const response = await fetch(
+      `https://react-mini-projects-api.classbon.com/Comments/${page}`
+    )
 
     const data = await response.json()
 
-    setComments(data)
+    data.length === 0 ? setLastElement(null)
+                      : setComments((oladData)=> [...oladData, ...data])
     setLoading(false)
   }
 
+  const observerRef = new IntersectionObserver(([entry])=>{
+    if (entry.isIntersecting){
+      setPage((currentPage)=> currentPage + 1)
+    }
+  })
+
   useEffect(()=>{
     fetchData()
-  }, [])
+  }, [page])
+
+  useEffect(()=>{
+    if (lastElement){
+      observerRef.observe(lastElement)
+    }
+
+    return ()=> {
+      if (lastElement){
+        observerRef.unobserve(lastElement)
+      }
+    }
+  }, [lastElement])
 
 
   return (
@@ -65,14 +88,12 @@ function App() {
                   </div>
                 </div>
               </div>
-             
                 <button
                   className="btn btn-info btn-shadow d-block w-100"
                   type="submit"
                 >
                   افزودن به سبد خرید
                 </button>
-            
             </form>
             <h5 className="h6 mb-3 pb-3 border-bottom">
               پیتزا استیک (یک نفره)
@@ -88,9 +109,11 @@ function App() {
       <hr />
       <div className="row">
         <div className="col-12 pt-5">
-          {
-            comments.map(comment => <Comment key={comment.id} {...comment}/>)
-          }
+          {comments.map((comment) => (
+            <div key={comment.id} ref={setLastElement}>
+              <Comment {...comment}/>
+            </div>
+          ))}
           {  loading && (
               <div className="d-flex justify-content-center">
                 <div className="spinner-border"></div>
